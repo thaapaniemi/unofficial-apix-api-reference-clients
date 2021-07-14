@@ -9,7 +9,7 @@ Official reference documentation: https://wiki.apix.fi/display/IAD/Rest+API+for+
 
 Following language implementations are available:
 * Python3
-
+* (Bash) Shell script with curl
 
 # Known issues
 
