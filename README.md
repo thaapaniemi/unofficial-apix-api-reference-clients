@@ -13,7 +13,7 @@ Following language implementations are available:
 
 # Known issues
 
-#Contributing
+# Contributing
 
 Contributions are welcome. Feel free to open a PR or file an issue here on GitHub!
 
