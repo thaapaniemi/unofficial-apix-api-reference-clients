@@ -7,11 +7,13 @@ Official reference documentation: https://wiki.apix.fi/display/IAD/Rest+API+for+
 
 # Languages
 
-Following language implementations are available:
+Following partial implementations are available:
 * Python3
 * (Bash) Shell script with curl
+* perl5
 
 # Known issues
+* Only small subset of public methods are implemented
 
 # Contributing
 
