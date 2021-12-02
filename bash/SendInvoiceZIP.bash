@@ -31,5 +31,5 @@ readonly DIGEST=$(echo -n "$SOFTWARE_NAME+$SOFTWARE_VERSION+$TRANSFER_ID+$TIMEST
 
 readonly URL="${ENDPOINT}?soft=${SOFTWARE_NAME}&ver=${SOFTWARE_VERSION}&TraID=${TRANSFER_ID}&t=${TIMESTAMP}&d=SHA-256%3A${DIGEST}";
 
-curl -X PUT --data @${FILEPATH} -H "Content-Type: application/octet-stream" $URL
+curl -X PUT --upload-file "${FILEPATH}" -H "Content-Type: application/octet-stream" $URL
 
