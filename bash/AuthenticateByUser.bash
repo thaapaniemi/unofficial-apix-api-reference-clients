@@ -2,7 +2,7 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-# ListInvoiceZIPs -method implemented as shell script
+# AuthenticateByUser -method implemented as shell script
 # requirements: bash, sha256sum, curl
 
 [ "$#" -eq 3 ] || { echo "Usage: $0 <test/prod/ENDPOINT> <email> <password>" >&2; exit 1;}
