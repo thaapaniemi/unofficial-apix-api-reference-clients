@@ -3,54 +3,73 @@
 
 import sys
 import argparse
+
+import requests
 import apix_public_api
 
-parser = argparse.ArgumentParser(description='Unofficial Apix API client implementation')
-parser.add_argument('-method', "-m", action='store', required=True, help="API method", default="SendInvoiceZIP", choices=["SendInvoiceZIP"])
+parser = argparse.ArgumentParser(
+    description='Unofficial Apix API client implementation')
+parser.add_argument('-method', "-m", action='store', required=True,
+                    help="API method", choices=["SendInvoiceZIP","DeliveryMethod","AddressQuery","SendPrintZIP","SendPayslip"])
 
-parser.add_argument('-software_name', '-s', required=True, nargs='?', help='software_name')
-parser.add_argument("-software_version", '-v', required=True, nargs='?', help='software_version')
-parser.add_argument("-transfer_id", '-i', required=True, nargs='?', help='transfer_id')
-parser.add_argument("-transfer_key", '-k', required=True, nargs='?', help='transfer_key')
+parser.add_argument('-software_name', '-s', required=True,
+                    nargs='?', help='software_name')
+parser.add_argument("-software_version", '-v', required=True,
+                    nargs='?', help='software_version')
+parser.add_argument("-transfer_id", '-i', required=True,
+                    nargs='?', help='transfer_id')
+parser.add_argument("-transfer_key", '-k', required=True,
+                    nargs='?', help='transfer_key')
 parser.add_argument("-file", '-f', required=True, nargs='?', help='Payload')
 
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument('-endpoint', '-u', nargs='?', help='API endpoint')
-group.add_argument('-environment', '-e', action='store', help="API environment", default="SendInvoiceZIP", choices=["test", "prod"])
+group.add_argument('-environment', '-e', action='store', help="API environment",
+                   default="SendInvoiceZIP", choices=["test", "prod"])
 
 
 def main():
     args = parser.parse_args()
 
-    if args.method == "SendInvoiceZIP":
-        endpoint = None
-        if args.endpoint:
-            endpoint = args.endpoint
-        elif args.environment == "prod":
-            endpoint = "https://api.apix.fi/invoices"
-        elif args.environment == "test":
-            endpoint = "https://test-api.apix.fi/invoices"
+    exitcode = 0
+
+    with apix_public_api.ApixPublicApi(args.transfer_id, args.transfer_key, environment=args.environment) as apix:
+        response: requests.Response = None
 
         data = None
         with open(args.file, "rb") as fh:
             data = fh.read()
 
-        (status_code, response_str) = apix_public_api.SendInvoiceZIP(endpoint, args.transfer_id, args.transfer_key, args.software_name, args.software_version, data)
-        response_str = response_str.decode("utf-8", errors="replace")
-
-        if status_code != 200:
-            raise Exception("Unknown HTTP error: [{status_code}] {response_str}".format(status_code=status_code, response_str=response_str))
-
-        # This is quick-and-dirty solution, real solution would be a use xml parser to get data
-        if response_str.find("<Status>OK</Status>") >= 0:
-            print("Invoice sent successfully:\n{response_str}\n".format(response_str=response_str))
-            sys.exit(0)
+        if args.method == "SendInvoiceZIP":
+            response = apix.SendInvoiceZIP(
+                args.software_name, args.software_version, data)
+        elif args.method == "DeliveryMethod":
+            response = apix.DeliveryMethod(data)
+        elif args.method == "AddressQuery":
+            response = apix.AddressQuery(data)
+        elif args.method == "SendPrintZIP":
+            response = apix.SendPrintZIP(
+                args.software_name, args.software_version, data)
+        elif args.method == "SendPayslip":
+            response = apix.SendPayslip(data)
         else:
-            print("Invoice was rejected (attach api response for possible questions for Apix):\n{response_str}\n".format(response_str=response_str))
-            sys.exit(1)
+            raise Exception(
+                "Unknown API method: {method}".format(method=args.method))
 
-    else:
-        raise Exception("Unknown API method: {method}".format(args.method))
+        if response.status_code != 200:
+            raise Exception("Unknown HTTP error: [{status_code}] {content}".format(status_code=response.status_code, content=response.content))
+        else:
+            if response.content.find(b"<Status>OK</Status>") >= 0:
+                print(response.content)
+                sys.stderr.write("Request handled succesfully\n")
+                exitcode = 0
+            else:
+                exitcode = 1
+                print(response.content)
+                sys.stderr.write(
+                    "Request was rejected (attach api response for possible questions for Apix) \n")
+
+    sys.exit(exitcode)
 
 
 if __name__ == '__main__':
