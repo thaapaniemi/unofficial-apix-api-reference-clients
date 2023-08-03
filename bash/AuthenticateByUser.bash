@@ -22,6 +22,7 @@ readonly TIMESTAMP=`date --utc +%Y%m%d%H%M%S`;
 
 #cut version
 readonly SHAPASS=$(echo -n "$PASSWORD"|sha256sum|cut -d ' ' -f 1);
+
 readonly DIGEST=$(echo -n "$EMAIL+$TIMESTAMP+$SHAPASS"|sha256sum|cut -d ' ' -f 1);
 
 readonly URL="${ENDPOINT}?uid=${EMAIL}&t=${TIMESTAMP}&d=SHA-256%3A${DIGEST}";

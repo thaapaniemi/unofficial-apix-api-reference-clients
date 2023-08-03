@@ -54,6 +54,57 @@ class ApixPublicApi(object):
             self.__terminal_api_endpoint = endpoints["terminal"]
         pass
 
+    ###  Administrative functions ###
+
+    @staticmethod
+    def AuthenticateByUser(username: str, password: str, environment: str, endpoint: str = None) -> requests.Response:
+        if endpoint is None and environment == "prod":
+            endpoint = "https://api.apix.fi"
+        elif endpoint is None and environment == "test":
+            endpoint = "https://test-api.apix.fi"
+
+        timestamp = time.strftime("%Y%m%d%H%m%S", time.gmtime())
+
+        pwhash = hashlib.sha256(password.encode("utf-8"))
+
+        h = hashlib.sha256()
+        h.update(
+            "+".join([username, timestamp, pwhash.hexdigest()]).encode("utf-8"))
+        digest = h.hexdigest()
+
+        params = {"uid": username, "t": timestamp, "d": "SHA-256:" + digest}
+
+        url = "{endpoint}/authuser?".format(endpoint=endpoint)
+
+        response = requests.get(url, params=params)
+        return response
+
+    def RetrieveTransferID(self, company_id) -> requests.Response:
+        """
+            RetrieveTransferID non-implementation
+
+            RetrieveTransferID is a deprecated function, please use AuthenticateByUser
+        """
+        raise NotImplemented()
+
+    def RetrieveCompanyInformation(self) -> requests.Response:
+        timestamp = time.strftime("%Y%m%d%H%m%S", time.gmtime())
+
+        h = hashlib.sha256()
+        h.update("+".join([self.__transfer_id, timestamp,
+                 self.__transfer_key]).encode("utf-8"))
+        digest = h.hexdigest()
+
+        params = {"TraID": self.__transfer_id,
+                  "t": timestamp, "d": "SHA-256:" + digest}
+
+        url = "{endpoint}/getcompanyinfo?".format(endpoint=self.__api_endpoint)
+
+        response = requests.get(url, params=params)
+        return response
+
+    ###  Sending functions ###
+
     def SendInvoiceZIP(self, software_name: str, software_version: str, data: bytes) -> requests.Response:
         """
             SendInvoiceZIP implementation
@@ -186,6 +237,68 @@ class ApixPublicApi(object):
 
         response = requests.put(url, data, params=params, headers=headers)
         return response
+
+     # Receiving functions
+    def ListInvoiceZIPs(self) -> requests.Response:
+        """
+            ListInvoiceZIPs implementation
+
+            returns requests.Response object
+        """
+        timestamp = time.strftime("%Y%m%d%H%m%S", time.gmtime())
+
+        h = hashlib.sha256()
+        h.update("+".join([self.__transfer_id, timestamp,
+                 self.__transfer_key]).encode("utf-8"))
+        digest = h.hexdigest()
+
+        params = {"TraID": self.__transfer_id,
+                  "t": timestamp, "d": "SHA-256:" + digest}
+
+        url = "{endpoint}/list2?".format(endpoint=self.__terminal_api_endpoint)
+
+        response = requests.get(url, params=params)
+        return response
+
+    def SetReceiveEmail(self, request):
+        """
+            AddressQuery implementation
+
+            request: Apix Request-xml defined in wiki
+
+            returns requests.Response object
+        """
+
+        timestamp = time.strftime("%Y%m%d%H%m%S", time.gmtime())
+
+        h = hashlib.sha256()
+        h.update("+".join([self.__transfer_id, timestamp,
+                 self.__transfer_key]).encode("utf-8"))
+        digest = h.hexdigest()
+
+        headers = {'Content-type': 'text/xml'}
+
+        params = {"TraID": self.__transfer_id,
+                  "t": timestamp, "d": "SHA-256:" + digest}
+
+        url = "{endpoint}/email?".format(endpoint=self.__api_endpoint)
+
+        response = requests.put(url, request, params=params, headers=headers)
+
+    def Download(self, storage_id, storage_key):
+        raise NotImplementedError("TODO")
+
+    def GetMetadata(self, storage_id, storage_key):
+        raise NotImplementedError("TODO")
+
+    # Accounting functions
+    def GetUsedSaldo(self, storage_id, storage_key):
+        raise NotImplementedError("TODO")
+
+    # Payslip API
+
+    def Delete(self, receiver_hash, date_id):
+        raise NotImplementedError("TODO")
 
     def __enter__(self):
         return self

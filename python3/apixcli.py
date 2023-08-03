@@ -7,23 +7,29 @@ import argparse
 import requests
 import apix_public_api
 
+from getpass import getpass
+
 parser = argparse.ArgumentParser(
     description='Unofficial Apix API client implementation')
 parser.add_argument('-method', "-m", action='store', required=True,
-                    help="API method", choices=["SendInvoiceZIP","DeliveryMethod","AddressQuery","SendPrintZIP","SendPayslip"])
+                    help="API method", choices=["AuthenticateByUser","SendInvoiceZIP","DeliveryMethod","AddressQuery","SendPrintZIP","SendPayslip","ListInvoiceZIPs"])
 
-parser.add_argument('-software_name', '-s', required=True,
+parser.add_argument('-software_name', '-s', required=False,
                     nargs='?', help='software_name')
-parser.add_argument("-software_version", '-v', required=True,
+parser.add_argument("-software_version", '-v', required=False,
                     nargs='?', help='software_version')
-parser.add_argument("-transfer_id", '-i', required=True,
+parser.add_argument("-transfer_id", '-i', required=False,
                     nargs='?', help='transfer_id')
-parser.add_argument("-transfer_key", '-k', required=True,
+parser.add_argument("-transfer_key", '-k', required=False,
                     nargs='?', help='transfer_key')
-parser.add_argument("-file", '-f', required=True, nargs='?', help='Payload')
+
+parser.add_argument("-username", '-u', required=False,
+                    nargs='?', help='transfer_id')
+
+parser.add_argument("-file", '-f', required=False, nargs='?', help='Payload')
 
 group = parser.add_mutually_exclusive_group(required=True)
-group.add_argument('-endpoint', '-u', nargs='?', help='API endpoint')
+
 group.add_argument('-environment', '-e', action='store', help="API environment",
                    default="SendInvoiceZIP", choices=["test", "prod"])
 
@@ -37,10 +43,14 @@ def main():
         response: requests.Response = None
 
         data = None
-        with open(args.file, "rb") as fh:
-            data = fh.read()
+        if args.file is not None:
+            with open(args.file, "rb") as fh:
+                data = fh.read()
 
-        if args.method == "SendInvoiceZIP":
+        if args.method == "AuthenticateByUser":
+            password = getpass()
+            response = apix.AuthenticateByUser(args.username, password, environment=args.environment)
+        elif args.method == "SendInvoiceZIP":
             response = apix.SendInvoiceZIP(
                 args.software_name, args.software_version, data)
         elif args.method == "DeliveryMethod":
@@ -52,6 +62,8 @@ def main():
                 args.software_name, args.software_version, data)
         elif args.method == "SendPayslip":
             response = apix.SendPayslip(data)
+        elif args.method == "ListInvoiceZIPs":
+            response = apix.ListInvoiceZIPs()
         else:
             raise Exception(
                 "Unknown API method: {method}".format(method=args.method))
